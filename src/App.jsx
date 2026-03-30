@@ -3,8 +3,8 @@ import { db } from "./firebase";
 import { collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch } from "firebase/firestore";
 
 const CLASSES = {
-  "ISCOM": ["Bachelor 2 (Temps plein)","BA. 3 Alternance (FA)","MBA 1 FA - spé Créa","MBA 1 FA - spé Marketing Digital","MBA 1 FA - spé Événementiel","MBA 1 FA - spé Stratégie de marque","MBA 2 FA - spé Stratégie de marque","MBA 2 FA - spé Marketing Digital","MBA 2 FA - spé Événementiel"],
-  "Studio M": ["BRM 2 - Classe A","BRM 2 - Classe B","BRM 1","BTS 2 (Temps plein)","BTS 1","Technicien Son 2 (Temps plein)","Technicien Son 1","Prépa Art","Design Graphique 3"],
+  "ISCOM": ["Bachelor 2","BA. 3 Alternance","MBA 1 FA - spé Créa","MBA 1 FA - spé Marketing Digital","MBA 1 FA - spé Événementiel","MBA 1 FA - spé Stratégie de marque","MBA 2 FA - spé Stratégie de marque","MBA 2 FA - spé Marketing Digital","MBA 2 FA - spé Événementiel"],
+  "Studio M": ["BRM 2 - Classe A","BRM 2 - Classe B","BRM 1","BTS 2","BTS 1","Technicien Son 2","Technicien Son 1","Prépa Art","Design Graphique 3"],
   "Staff": ["Staff ISCOM","Staff Studio M"],
 };
 const SCHOOL_COLORS = { "ISCOM": "#3A2E83", "Studio M": "#ED7218", "Staff": "#1a8c5e" };
