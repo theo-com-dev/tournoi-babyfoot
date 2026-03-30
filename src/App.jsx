@@ -93,6 +93,7 @@ function App() {
   const [dateInput, setDateInput] = useState("");
   const [dayInput, setDayInput] = useState("");
   const [timeInput, setTimeInput] = useState("");
+  const [firebaseOk, setFirebaseOk] = useState(false);
 
   useEffect(() => {
     // Admin stays in localStorage
@@ -100,20 +101,28 @@ function App() {
 
     // Real-time listener: teams
     const unsubTeams = onSnapshot(collection(db, "teams"), (snap) => {
+      console.log("[Firebase] Teams synced:", snap.docs.length);
       setTeams(snap.docs.map(d => ({ ...d.data(), id: d.id })));
+      setFirebaseOk(true);
+    }, (err) => {
+      console.error("[Firebase] Teams error:", err);
     });
 
     // Real-time listener: matches (seed defaults if empty, only once)
     let seeded = false;
     const unsubMatches = onSnapshot(collection(db, "matches"), (snap) => {
+      console.log("[Firebase] Matches synced:", snap.docs.length);
       if (snap.docs.length === 0 && !seeded) {
         seeded = true;
         const batch = writeBatch(db);
         DEFAULT_MATCHES.forEach(m => batch.set(doc(db, "matches", m.id), m));
-        batch.commit();
+        batch.commit().then(() => console.log("[Firebase] Default matches seeded")).catch(e => console.error("[Firebase] Seed error:", e));
       } else if (snap.docs.length > 0) {
         setMatches(snap.docs.map(d => ({ ...d.data(), id: d.id })));
       }
+      setFirebaseOk(true);
+    }, (err) => {
+      console.error("[Firebase] Matches error:", err);
     });
 
     return () => { unsubTeams(); unsubMatches(); };
@@ -195,6 +204,10 @@ function App() {
           <div style={{ fontSize:38, marginBottom:4 }}>⚽</div>
           <h1 onClick={handleTitleClick} style={{ margin:0, fontSize:22, fontWeight:800, letterSpacing:2, textTransform:"uppercase", cursor:"default", userSelect:"none" }}>Tournoi Baby-Foot</h1>
           <p style={{ margin:"4px 0 0", fontSize:13, opacity:0.9, fontWeight:500 }}>Studio M & ISCOM — Printemps 2026</p>
+          <div style={{ marginTop:4, fontSize:9, opacity:0.6, display:"flex", alignItems:"center", justifyContent:"center", gap:4 }}>
+            <span style={{ width:6, height:6, borderRadius:"50%", background:firebaseOk?"#2ecc71":"#e74c3c", display:"inline-block" }} />
+            {firebaseOk?"Données synchronisées":"Connexion en cours..."}
+          </div>
           {isAdmin && <div style={{ marginTop:6, display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
             <span style={{ fontSize:10, fontWeight:700, color:"rgba(255,255,255,0.7)", background:"rgba(0,0,0,0.2)", padding:"2px 8px", borderRadius:4 }}>🔧 ADMIN</span>
             <button onClick={handleLogout} style={{ fontSize:10, background:"rgba(0,0,0,0.3)", border:"none", color:"rgba(255,255,255,0.5)", padding:"2px 8px", borderRadius:4, cursor:"pointer" }}>Déco</button>
