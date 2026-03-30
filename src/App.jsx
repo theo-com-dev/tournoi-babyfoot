@@ -167,7 +167,7 @@ function App() {
           <div>
             <div style={{ textAlign:"center", marginBottom:16, padding:"10px 16px", background:"rgba(255,255,255,0.04)", borderRadius:10, border:"1px solid rgba(255,255,255,0.06)" }}>
               <div style={{ fontSize:13, opacity:0.6, fontWeight:600, textTransform:"uppercase", letterSpacing:1 }}>Huitièmes de finale</div>
-              <div style={{ fontSize:11, opacity:0.4, marginTop:2 }}>2 × 10 points — Les 4 joueurs jouent — Pause déjeuner</div>
+              <div style={{ fontSize:11, opacity:0.4, marginTop:2 }}>Premier à 20 buts — Les 4 joueurs jouent — Pause déjeuner</div>
             </div>
             {matchDays.map((day,di)=>(
               <div key={di} style={{ marginBottom:16 }}>
@@ -517,34 +517,38 @@ function App() {
             </RuleSection>
             <RuleSection icon="🏆" title="3. Format des matchs">
               <div style={{ padding:"10px 14px", background:"rgba(237,114,24,0.1)", borderRadius:8, border:"1px solid rgba(237,114,24,0.2)", marginBottom:8 }}>
-                <div style={{ fontWeight:700, fontSize:14, color:"#ED7218", marginBottom:4 }}>🏓 Aller — 10 points</div>
-                <div style={{ fontSize:12 }}>2 premiers joueurs. Mi-temps finie dès <strong>10 buts</strong>.</div>
+                <div style={{ fontWeight:700, fontSize:14, color:"#ED7218", marginBottom:4 }}>🏓 Aller</div>
+                <div style={{ fontSize:12 }}>2 premiers joueurs sur le terrain.</div>
               </div>
               <div style={{ display:"flex", justifyContent:"center", margin:"4px 0" }}><div style={{ fontSize:11, fontWeight:800, color:"rgba(255,255,255,0.3)", padding:"2px 12px", background:"rgba(255,255,255,0.05)", borderRadius:4 }}>🔄 CHANGEMENT DES 4 JOUEURS</div></div>
               <div style={{ padding:"10px 14px", background:"rgba(237,114,24,0.1)", borderRadius:8, border:"1px solid rgba(237,114,24,0.2)", marginTop:6, marginBottom:8 }}>
-                <div style={{ fontWeight:700, fontSize:14, color:"#ED7218", marginBottom:4 }}>🏓 Retour — 10 points</div>
-                <div style={{ fontSize:12 }}>2 autres joueurs. Mi-temps finie dès <strong>10 buts</strong>.</div>
+                <div style={{ fontWeight:700, fontSize:14, color:"#ED7218", marginBottom:4 }}>🏓 Retour</div>
+                <div style={{ fontSize:12 }}>2 autres joueurs sur le terrain.</div>
               </div>
               <div style={{ padding:"8px 12px", background:"rgba(255,255,255,0.06)", borderRadius:8, marginBottom:8 }}>
                 <div style={{ fontWeight:700, fontSize:13, marginBottom:4 }}>📊 Résultat</div>
-                <div style={{ fontSize:12 }}>Total sur 20. <strong>Meilleur score</strong> = victoire.</div>
+                <div style={{ fontSize:12 }}><strong>La première équipe à 20 buts gagne le match.</strong></div>
               </div>
               <RuleBullet>Élimination directe (8e → Quarts → Demies → Finale).</RuleBullet>
             </RuleSection>
-            <RuleSection icon="⏰" title="4. Ponctualité"><RuleBullet>Matchs sur la pause déjeuner.</RuleBullet><RuleBullet warn><strong>+5 min = forfait.</strong></RuleBullet></RuleSection>
+            <RuleSection icon="⏰" title="4. Ponctualité"><RuleBullet>Matchs sur la pause déjeuner.</RuleBullet><RuleBullet warn><strong>+10 min de retard = élimination.</strong></RuleBullet></RuleSection>
             <RuleSection icon="⚖️" title="5. Arbitrage"><RuleBullet>Auto-arbitrage. Staff = juge de paix. Décision finale.</RuleBullet></RuleSection>
             <RuleSection icon="⚽" title="6. Engagement"><RuleBullet>Pile ou face / chifoumi. Toujours aux demis. "Prêt ?" obligatoire.</RuleBullet><RuleBullet>L'équipe qui encaisse récupère l'engagement.</RuleBullet></RuleSection>
             <RuleSection icon="🥅" title="7. Buts et gamelles"><RuleBullet>Gamelle = 1 pt. Pas de but direct sur engagement sans passe.</RuleBullet></RuleSection>
             <RuleSection icon="🚫" title="8. Interdits absolus">
               <div style={{ marginBottom:4, fontSize:12, opacity:0.6, fontWeight:600 }}>Sanction : balle à l'adversaire</div>
-              <RuleInterdit name="Roulette" desc="Rotation 360°+ de la barre." />
               <RuleInterdit name="Bourrinage" desc="Tordre/soulever/secouer la table." />
               <RuleInterdit name="Distraction" desc="Crier ou mains au-dessus du terrain." />
               <RuleInterdit name="Pissettes" desc="Tir ailiers barre de 3 sans passe." />
-              <RuleInterdit name="Râteaux" desc="Déviation latérale aux demis." />
             </RuleSection>
             <RuleSection icon="💀" title="9. Balles mortes / sorties"><RuleBullet>Morte entre barres de 5 → demis du dernier engagement.</RuleBullet><RuleBullet>Morte ailleurs → arrières du camp le plus proche.</RuleBullet><RuleBullet>Hors table → arrières de l'autre équipe. Rebond du but → but accordé.</RuleBullet></RuleSection>
-            <RuleSection icon="⏸️" title="10. Temps morts"><RuleBullet>1 temps mort (1 min) par mi-temps par équipe, balle contrôlée.</RuleBullet></RuleSection>
+            <RuleSection icon="🎬" title="10. Lots">
+              <div style={{ padding:"12px 14px", background:"rgba(237,114,24,0.1)", borderRadius:8, border:"1px solid rgba(237,114,24,0.2)", textAlign:"center" }}>
+                <div style={{ fontSize:24, marginBottom:6 }}>🎬🍿</div>
+                <div style={{ fontSize:14, fontWeight:700, color:"#ED7218", marginBottom:4 }}>Places de cinéma</div>
+                <div style={{ fontSize:12 }}>Une place par joueur de l'équipe gagnante !</div>
+              </div>
+            </RuleSection>
             <div style={{ textAlign:"center", marginTop:16, padding:"14px 16px", background:"rgba(237,114,24,0.08)", borderRadius:10, border:"1px solid rgba(237,114,24,0.15)" }}>
               <div style={{ fontSize:14, fontWeight:700 }}>Bon tournoi à toutes et à tous ! 🏆</div>
               <div style={{ fontSize:11, opacity:0.4, marginTop:4, fontStyle:"italic" }}>Le Staff Studio M & ISCOM</div>
