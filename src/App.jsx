@@ -259,51 +259,146 @@ function App() {
         )}
 
         {/* ===== ARBRE ===== */}
-        {activeTab==="arbre" && (
-          <div>
-            <div style={{ textAlign:"center", marginBottom:16, padding:"12px 16px", background:"rgba(255,255,255,0.04)", borderRadius:10, border:"1px solid rgba(255,255,255,0.06)" }}>
-              <div style={{ fontSize:15, fontWeight:800, textTransform:"uppercase", letterSpacing:1 }}>Arbre du tournoi</div>
-              <div style={{ fontSize:11, opacity:0.4, marginTop:2 }}>Élimination directe — Huitièmes de finale</div>
-            </div>
-            <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
-              {matches.map(m=>{
-                const hasScore=m.scoreA!==null;
-                return (
-                  <div key={m.id} style={{ background:"rgba(255,255,255,0.05)", borderRadius:8, overflow:"hidden", border:`1px solid ${hasScore?"rgba(237,114,24,0.2)":"rgba(255,255,255,0.06)"}` }}>
-                    <div style={{ fontSize:9, fontWeight:700, color:"#ED7218", textAlign:"center", padding:"3px 8px", background:"rgba(237,114,24,0.08)", borderBottom:"1px solid rgba(255,255,255,0.06)" }}>{m.date} — {m.day} {m.time}</div>
-                    <div style={{ display:"flex", justifyContent:"space-between", padding:"6px 10px", borderBottom:"1px solid rgba(255,255,255,0.04)", background:hasScore&&m.winnerId==="A"?"rgba(237,114,24,0.1)":"transparent" }}>
-                      <span style={{ fontSize:12, fontWeight:hasScore&&m.winnerId==="A"?700:500 }}>{m.teamA}</span>
-                      {hasScore&&<span style={{ fontSize:13, fontWeight:800 }}>{m.scoreA}</span>}
-                    </div>
-                    <div style={{ display:"flex", justifyContent:"space-between", padding:"6px 10px", background:hasScore&&m.winnerId==="B"?"rgba(237,114,24,0.1)":"transparent" }}>
-                      <span style={{ fontSize:12, fontWeight:hasScore&&m.winnerId==="B"?700:500 }}>{m.teamB}</span>
-                      {hasScore&&<span style={{ fontSize:13, fontWeight:800 }}>{m.scoreB}</span>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{ marginTop:16 }}>
-              {[{label:"Quarts de finale",count:5},{label:"Demi-finales",count:2},{label:"🏆 Finale",count:1}].map(phase=>(
-                <div key={phase.label} style={{ marginBottom:12 }}>
-                  <div style={{ fontSize:12, fontWeight:700, color:"#ED7218", textTransform:"uppercase", letterSpacing:1, marginBottom:6, textAlign:"center" }}>{phase.label}</div>
-                  {Array.from({length:phase.count}).map((_,i)=>(
-                    <div key={i} style={{ background:"rgba(255,255,255,0.03)", borderRadius:8, overflow:"hidden", border:"1px solid rgba(255,255,255,0.04)", marginBottom:4 }}>
-                      <div style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,0.2)", textAlign:"center", padding:"3px 8px", background:"rgba(255,255,255,0.02)" }}>À définir</div>
-                      <div style={{ padding:"5px 10px", fontSize:11, color:"rgba(255,255,255,0.25)", borderBottom:"1px solid rgba(255,255,255,0.03)" }}>Vainqueur ?</div>
-                      <div style={{ padding:"5px 10px", fontSize:11, color:"rgba(255,255,255,0.25)" }}>Vainqueur ?</div>
-                    </div>
-                  ))}
+        {activeTab==="arbre" && (()=>{
+          const MATCH_H = 52;
+          const MATCH_W = 150;
+          const GAP_V = 8;
+          const COL_GAP = 32;
+          const LINE_COLOR = "rgba(237,114,24,0.4)";
+          const LINE_DONE = "#ED7218";
+
+          const getWinner = (m) => {
+            if (!m || m.scoreA===null) return null;
+            if (m.winnerId==="A") return m.teamA;
+            if (m.winnerId==="B") return m.teamB;
+            return null;
+          };
+
+          const rounds = [
+            { label:"Huitièmes", matches: matches.map(m=>({...m})) },
+            { label:"Quarts", matches: Array.from({length:5},(_,i)=>({ id:`q${i+1}`, teamA:getWinner(matches[i*2])||"Vainqueur M"+(i*2+1), teamB:getWinner(matches[i*2+1])||"Vainqueur M"+(i*2+2), scoreA:null, scoreB:null, winnerId:null, pending:!getWinner(matches[i*2])||!getWinner(matches[i*2+1]) })) },
+            { label:"Demis", matches: [
+              { id:"s1", teamA:"Vainqueur Q1", teamB:"Vainqueur Q2", scoreA:null, scoreB:null, winnerId:null, pending:true },
+              { id:"s2", teamA:"Vainqueur Q3", teamB:"Vainqueur Q4", scoreA:null, scoreB:null, winnerId:null, pending:true },
+            ]},
+            { label:"Finale", matches: [
+              { id:"f1", teamA:"Vainqueur S1", teamB:"Vainqueur S2", scoreA:null, scoreB:null, winnerId:null, pending:true },
+            ]},
+          ];
+
+          const shortName = (name) => {
+            if (!name) return "?";
+            return name.length > 18 ? name.substring(0,16)+"…" : name;
+          };
+
+          const BracketMatch = ({ m, isPending }) => {
+            const hasScore = m.scoreA !== null;
+            return (
+              <div style={{ width:MATCH_W, height:MATCH_H, background:"rgba(255,255,255,0.06)", borderRadius:6, overflow:"hidden", border:`1px solid ${hasScore?"rgba(237,114,24,0.3)":"rgba(255,255,255,0.08)"}`, flexShrink:0, position:"relative" }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"2px 6px", height:MATCH_H/2-1, borderBottom:"1px solid rgba(255,255,255,0.06)", background:hasScore&&m.winnerId==="A"?"rgba(237,114,24,0.15)":"transparent" }}>
+                  <span style={{ fontSize:9, fontWeight:hasScore&&m.winnerId==="A"?700:500, color:isPending?"rgba(255,255,255,0.3)":"#fff", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:MATCH_W-30 }}>{shortName(m.teamA)}</span>
+                  {hasScore&&<span style={{ fontSize:10, fontWeight:800, color:"#ED7218", flexShrink:0 }}>{m.scoreA}</span>}
                 </div>
-              ))}
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"2px 6px", height:MATCH_H/2-1, background:hasScore&&m.winnerId==="B"?"rgba(237,114,24,0.15)":"transparent" }}>
+                  <span style={{ fontSize:9, fontWeight:hasScore&&m.winnerId==="B"?700:500, color:isPending?"rgba(255,255,255,0.3)":"#fff", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:MATCH_W-30 }}>{shortName(m.teamB)}</span>
+                  {hasScore&&<span style={{ fontSize:10, fontWeight:800, color:"#ED7218", flexShrink:0 }}>{m.scoreB}</span>}
+                </div>
+              </div>
+            );
+          };
+
+          const roundCounts = rounds.map(r=>r.matches.length);
+          const maxMatches = roundCounts[0];
+          const totalH = maxMatches * (MATCH_H + GAP_V) - GAP_V;
+          const totalW = rounds.length * MATCH_W + (rounds.length-1) * COL_GAP;
+
+          return (
+            <div>
+              <div style={{ textAlign:"center", marginBottom:16, padding:"12px 16px", background:"rgba(255,255,255,0.04)", borderRadius:10, border:"1px solid rgba(255,255,255,0.06)" }}>
+                <div style={{ fontSize:15, fontWeight:800, textTransform:"uppercase", letterSpacing:1 }}>Arbre du tournoi</div>
+                <div style={{ fontSize:11, opacity:0.4, marginTop:2 }}>Scroll horizontal pour voir toutes les phases</div>
+              </div>
+
+              <div style={{ overflowX:"auto", overflowY:"hidden", paddingBottom:16, WebkitOverflowScrolling:"touch" }}>
+                <svg width={totalW+40} height={totalH+40} style={{ display:"block" }}>
+                  {/* Connector lines between rounds */}
+                  {rounds.map((round, ri) => {
+                    if (ri === 0) return null;
+                    const prevRound = rounds[ri-1];
+                    const prevCount = prevRound.matches.length;
+                    const curCount = round.matches.length;
+                    const prevSpacing = totalH / prevCount;
+                    const curSpacing = totalH / curCount;
+                    const x1 = 20 + ri * (MATCH_W + COL_GAP) - COL_GAP;
+                    const x2 = 20 + ri * (MATCH_W + COL_GAP);
+                    const xMid = (x1 + x2) / 2;
+
+                    return round.matches.map((m, mi) => {
+                      const curY = curSpacing * mi + curSpacing / 2 + 20;
+                      const prevIdx1 = mi * 2;
+                      const prevIdx2 = mi * 2 + 1;
+                      if (prevIdx1 >= prevCount) return null;
+                      const prevY1 = prevSpacing * prevIdx1 + prevSpacing / 2 + 20;
+                      const prevY2 = prevIdx2 < prevCount ? prevSpacing * prevIdx2 + prevSpacing / 2 + 20 : prevY1;
+                      const hasResult1 = prevRound.matches[prevIdx1]?.scoreA !== null;
+                      const hasResult2 = prevIdx2 < prevCount && prevRound.matches[prevIdx2]?.scoreA !== null;
+
+                      return (
+                        <g key={`line-${ri}-${mi}`}>
+                          {/* Line from prev match 1 */}
+                          <line x1={x1} y1={prevY1} x2={xMid} y2={prevY1} stroke={hasResult1?LINE_DONE:LINE_COLOR} strokeWidth={1.5} />
+                          <line x1={xMid} y1={prevY1} x2={xMid} y2={curY} stroke={hasResult1&&hasResult2?LINE_DONE:LINE_COLOR} strokeWidth={1.5} />
+                          {/* Line from prev match 2 */}
+                          {prevIdx2 < prevCount && <>
+                            <line x1={x1} y1={prevY2} x2={xMid} y2={prevY2} stroke={hasResult2?LINE_DONE:LINE_COLOR} strokeWidth={1.5} />
+                            <line x1={xMid} y1={prevY2} x2={xMid} y2={curY} stroke={hasResult1&&hasResult2?LINE_DONE:LINE_COLOR} strokeWidth={1.5} />
+                          </>}
+                          {/* Line to current match */}
+                          <line x1={xMid} y1={curY} x2={x2} y2={curY} stroke={hasResult1&&(prevIdx2>=prevCount||hasResult2)?LINE_DONE:LINE_COLOR} strokeWidth={1.5} />
+                        </g>
+                      );
+                    });
+                  })}
+
+                  {/* Round labels and match cards */}
+                  {rounds.map((round, ri) => {
+                    const count = round.matches.length;
+                    const spacing = totalH / count;
+                    const x = 20 + ri * (MATCH_W + COL_GAP);
+
+                    return (
+                      <g key={`round-${ri}`}>
+                        {/* Round label */}
+                        <text x={x + MATCH_W/2} y={12} textAnchor="middle" fill="#ED7218" fontSize={10} fontWeight={700} style={{ textTransform:"uppercase", letterSpacing:1 }}>{round.label}</text>
+
+                        {/* Match cards via foreignObject */}
+                        {round.matches.map((m, mi) => {
+                          const y = spacing * mi + (spacing - MATCH_H) / 2 + 20;
+                          return (
+                            <foreignObject key={m.id} x={x} y={y} width={MATCH_W} height={MATCH_H}>
+                              <BracketMatch m={m} isPending={m.pending} />
+                            </foreignObject>
+                          );
+                        })}
+                      </g>
+                    );
+                  })}
+
+                  {/* Trophy icon at the end */}
+                  <text x={totalW + 10} y={totalH/2 + 24} textAnchor="middle" fontSize={28}>🏆</text>
+                </svg>
+              </div>
+
+              {/* Legend */}
+              <div style={{ display:"flex", gap:16, justifyContent:"center", marginTop:8, flexWrap:"wrap" }}>
+                {[{emoji:"🔵",label:"ISCOM"},{emoji:"🔴",label:"Studio M"},{emoji:"🟢",label:"Staff"}].map(l=>(
+                  <div key={l.label} style={{ display:"flex", alignItems:"center", gap:4, fontSize:11, opacity:0.6 }}><span>{l.emoji}</span> {l.label}</div>
+                ))}
+              </div>
+              <div style={{ textAlign:"center", marginTop:8, fontSize:10, opacity:0.3 }}>← Glisser pour naviguer →</div>
             </div>
-            <div style={{ display:"flex", gap:16, justifyContent:"center", marginTop:12, flexWrap:"wrap" }}>
-              {[{emoji:"🔵",label:"ISCOM"},{emoji:"🔴",label:"Studio M"},{emoji:"🟢",label:"Staff"}].map(l=>(
-                <div key={l.label} style={{ display:"flex", alignItems:"center", gap:4, fontSize:11, opacity:0.6 }}><span>{l.emoji}</span> {l.label}</div>
-              ))}
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ===== INSCRIPTION ===== */}
         {activeTab==="inscription" && (
