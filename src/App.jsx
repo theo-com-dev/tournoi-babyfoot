@@ -1,10 +1,6 @@
 import { useState, useEffect } from "react";
-
-const DB = {
-  async get(key) { try { const r = await window.storage.get(key); return r && r.value ? JSON.parse(r.value) : null; } catch { return null; } },
-  async set(key, val) { try { await window.storage.set(key, JSON.stringify(val)); } catch (e) { console.error(e); } },
-};
-const KEYS = { teams: "bf-teams", matches: "bf-matches", admin: "bf-admin" };
+import { db } from "./firebase";
+import { collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch } from "firebase/firestore";
 
 const CLASSES = {
   "ISCOM": ["Bachelor 2 (Temps plein)","BA. 3 Alternance (FA)","MBA 1 FA - spé Créa","MBA 1 FA - spé Marketing Digital","MBA 1 FA - spé Événementiel","MBA 1 FA - spé Stratégie de marque","MBA 2 FA - spé Stratégie de marque","MBA 2 FA - spé Marketing Digital","MBA 2 FA - spé Événementiel"],
@@ -48,7 +44,7 @@ function RuleInterdit({ name, desc }) { return <div style={{ display:"flex", gap
 
 function App() {
   const [teams, setTeams] = useState([]);
-  const [matches, setMatches] = useState(DEFAULT_MATCHES);
+  const [matches, setMatches] = useState([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [titleClicks, setTitleClicks] = useState(0);
   const [showPassModal, setShowPassModal] = useState(false);
@@ -68,40 +64,59 @@ function App() {
   const [dayInput, setDayInput] = useState("");
   const [timeInput, setTimeInput] = useState("");
 
-  useEffect(() => { (async () => {
-    const t = await DB.get(KEYS.teams); if (t) setTeams(t);
-    const m = await DB.get(KEYS.matches); if (m) setMatches(m);
-    const a = await DB.get(KEYS.admin); if (a) setIsAdmin(true);
-  })(); }, []);
+  useEffect(() => {
+    // Admin stays in localStorage
+    if (localStorage.getItem("bf-admin") === "true") setIsAdmin(true);
 
-  const saveTeams = async (t) => { setTeams(t); await DB.set(KEYS.teams, t); };
-  const saveMatches = async (m) => { setMatches(m); await DB.set(KEYS.matches, m); };
+    // Real-time listener: teams
+    const unsubTeams = onSnapshot(collection(db, "teams"), (snap) => {
+      setTeams(snap.docs.map(d => ({ ...d.data(), id: d.id })));
+    });
+
+    // Real-time listener: matches (seed defaults if empty)
+    const unsubMatches = onSnapshot(collection(db, "matches"), (snap) => {
+      if (snap.docs.length === 0) {
+        const batch = writeBatch(db);
+        DEFAULT_MATCHES.forEach(m => batch.set(doc(db, "matches", m.id), m));
+        batch.commit();
+      } else {
+        setMatches(snap.docs.map(d => ({ ...d.data(), id: d.id })));
+      }
+    });
+
+    return () => { unsubTeams(); unsubMatches(); };
+  }, []);
+
+  const saveTeam = async (team) => { await setDoc(doc(db, "teams", team.id), team); };
+  const deleteTeamDoc = async (teamId) => { await deleteDoc(doc(db, "teams", teamId)); };
+  const saveMatch = async (match) => { await setDoc(doc(db, "matches", match.id), match); };
 
   const handleTitleClick = () => { const n = titleClicks+1; setTitleClicks(n); if (n>=5) { setShowPassModal(true); setTitleClicks(0); } };
-  const handlePassSubmit = async () => { if (passInput===ADMIN_PASS) { setIsAdmin(true); await DB.set(KEYS.admin,true); } setShowPassModal(false); setPassInput(""); };
-  const handleLogout = async () => { setIsAdmin(false); await DB.set(KEYS.admin,false); };
+  const handlePassSubmit = () => { if (passInput===ADMIN_PASS) { setIsAdmin(true); localStorage.setItem("bf-admin","true"); } setShowPassModal(false); setPassInput(""); };
+  const handleLogout = () => { setIsAdmin(false); localStorage.removeItem("bf-admin"); };
 
   const resetForm = () => { setSelectedSchool(""); setSelectedClass(""); setTeamName(""); setPlayers(["","","",""]); setEditingIndex(null); };
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedClass||!teamName.trim()||players.filter(p=>p.trim()).length<2) return;
     const team = { id:editingIndex!==null?teams[editingIndex].id:Date.now().toString(), school:selectedSchool, className:selectedClass, name:teamName.trim(), players:players.map(p=>p.trim()).filter(Boolean), date:new Date().toLocaleDateString("fr-FR") };
-    let nt; if (editingIndex!==null) { nt=[...teams]; nt[editingIndex]=team; } else { nt=[...teams,team]; }
-    saveTeams(nt); setSubmitted(true);
+    await saveTeam(team); setSubmitted(true);
     setTimeout(() => { setSubmitted(false); resetForm(); setActiveTab("equipes"); },2000);
   };
   const handleEdit = (idx) => { const t=teams[idx]; setSelectedSchool(t.school); setSelectedClass(t.className); setTeamName(t.name); const p=[...t.players]; while(p.length<4) p.push(""); setPlayers(p); setEditingIndex(idx); setActiveTab("inscription"); };
-  const handleDelete = async (idx) => { await saveTeams(teams.filter((_,i)=>i!==idx)); };
+  const handleDelete = async (idx) => { await deleteTeamDoc(teams[idx].id); };
 
-  const handleSaveScore = (matchId) => {
+  const handleSaveScore = async (matchId) => {
     const a=parseInt(scoreInputA); const b=parseInt(scoreInputB);
     if (isNaN(a)||isNaN(b)) return;
-    saveMatches(matches.map(m=>m.id===matchId?{...m,scoreA:a,scoreB:b,winnerId:a>b?"A":b>a?"B":null}:m));
+    const match = matches.find(m=>m.id===matchId);
+    await saveMatch({...match, scoreA:a, scoreB:b, winnerId:a>b?"A":b>a?"B":null});
     setEditingScore(null); setScoreInputA(""); setScoreInputB("");
   };
 
-  const handleSaveDate = (matchId) => {
+  const handleSaveDate = async (matchId) => {
     if (!dateInput||!dayInput||!timeInput) return;
-    saveMatches(matches.map(m=>m.id===matchId?{...m,date:dateInput,day:dayInput,time:timeInput}:m));
+    const match = matches.find(m=>m.id===matchId);
+    await saveMatch({...match, date:dateInput, day:dayInput, time:timeInput});
     setEditingDate(null); setDateInput(""); setDayInput(""); setTimeInput("");
   };
 
