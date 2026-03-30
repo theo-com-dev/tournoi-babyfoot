@@ -25,7 +25,11 @@ const DEFAULT_MATCHES = [
   { id:"m10", date:"17/04", day:"Vendredi", time:"12h45", teamA:"🔵 MBA 2 FA - Event (ISCOM)", teamB:"🟢 Staff ISCOM", scoreA:null, scoreB:null, winnerId:null },
 ];
 
-const ADMIN_PASS = "babystudio2026";
+const ADMIN_HASH = "67cdc292407429c1fb5b6f3ce02ef19a3ce138bab1ce33fcf66bb326ef362412";
+async function hashPass(pass) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pass));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
 
 function RuleSection({ icon, title, children }) {
   const [open, setOpen] = useState(false);
@@ -92,7 +96,7 @@ function App() {
   const saveMatch = async (match) => { await setDoc(doc(db, "matches", match.id), match); };
 
   const handleTitleClick = () => { const n = titleClicks+1; setTitleClicks(n); if (n>=5) { setShowPassModal(true); setTitleClicks(0); } };
-  const handlePassSubmit = () => { if (passInput===ADMIN_PASS) { setIsAdmin(true); localStorage.setItem("bf-admin","true"); } setShowPassModal(false); setPassInput(""); };
+  const handlePassSubmit = async () => { if (await hashPass(passInput)===ADMIN_HASH) { setIsAdmin(true); localStorage.setItem("bf-admin","true"); } setShowPassModal(false); setPassInput(""); };
   const handleLogout = () => { setIsAdmin(false); localStorage.removeItem("bf-admin"); };
 
   const resetForm = () => { setSelectedSchool(""); setSelectedClass(""); setTeamName(""); setPlayers(["","","",""]); setEditingIndex(null); };
