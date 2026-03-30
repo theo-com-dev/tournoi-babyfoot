@@ -26,6 +26,32 @@ const DEFAULT_MATCHES = [
 ];
 
 const ADMIN_HASH = "67cdc292407429c1fb5b6f3ce02ef19a3ce138bab1ce33fcf66bb326ef362412";
+function downloadICS(match) {
+  const [dd,mm] = match.date.split("/");
+  const year = 2026;
+  const [hh,min] = match.time.replace("h",":").split(":").map(Number);
+  const pad = n => String(n).padStart(2,"0");
+  const start = `${year}${pad(parseInt(mm))}${pad(parseInt(dd))}T${pad(hh)}${pad(min)}00`;
+  const endMin = min + 30;
+  const endH = hh + Math.floor(endMin/60);
+  const end = `${year}${pad(parseInt(mm))}${pad(parseInt(dd))}T${pad(endH)}${pad(endMin%60)}00`;
+  const ics = [
+    "BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//TournoiBabyfoot//FR",
+    "BEGIN:VEVENT",
+    `DTSTART;TZID=Europe/Paris:${start}`,
+    `DTEND;TZID=Europe/Paris:${end}`,
+    `SUMMARY:Baby-Foot: ${match.teamA} vs ${match.teamB}`,
+    `DESCRIPTION:Tournoi Baby-Foot Studio M & ISCOM — ${match.day} ${match.date} à ${match.time}`,
+    "LOCATION:Baby-Foot — Studio M / ISCOM",
+    `UID:${match.id}@tournoi-babyfoot`,
+    "END:VEVENT","END:VCALENDAR"
+  ].join("\r\n");
+  const blob = new Blob([ics],{type:"text/calendar;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href=url; a.download=`match-${match.id}.ics`; a.click();
+  URL.revokeObjectURL(url);
+}
+
 async function hashPass(pass) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pass));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
@@ -217,6 +243,13 @@ function App() {
                           </div>
                         </div>
                       </div>
+
+                      {/* Calendar button — visible to all */}
+                      {!hasScore && (
+                        <div style={{ marginTop:6, display:"flex", justifyContent:"flex-end" }}>
+                          <button onClick={()=>downloadICS(m)} style={{ padding:"4px 10px", borderRadius:6, border:"1px solid rgba(237,114,24,0.3)", background:"rgba(237,114,24,0.08)", color:"#ED7218", fontSize:10, cursor:"pointer", fontWeight:600, display:"flex", alignItems:"center", gap:4 }}>📅 Rappel agenda</button>
+                        </div>
+                      )}
 
                       {/* Admin controls */}
                       {isAdmin && (
