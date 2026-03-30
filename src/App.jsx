@@ -74,7 +74,7 @@ function RuleInterdit({ name, desc }) { return <div style={{ display:"flex", gap
 
 function App() {
   const [teams, setTeams] = useState([]);
-  const [matches, setMatches] = useState([]);
+  const [matches, setMatches] = useState(DEFAULT_MATCHES);
   const [isAdmin, setIsAdmin] = useState(false);
   const [titleClicks, setTitleClicks] = useState(0);
   const [showPassModal, setShowPassModal] = useState(false);
@@ -103,13 +103,15 @@ function App() {
       setTeams(snap.docs.map(d => ({ ...d.data(), id: d.id })));
     });
 
-    // Real-time listener: matches (seed defaults if empty)
+    // Real-time listener: matches (seed defaults if empty, only once)
+    let seeded = false;
     const unsubMatches = onSnapshot(collection(db, "matches"), (snap) => {
-      if (snap.docs.length === 0) {
+      if (snap.docs.length === 0 && !seeded) {
+        seeded = true;
         const batch = writeBatch(db);
         DEFAULT_MATCHES.forEach(m => batch.set(doc(db, "matches", m.id), m));
         batch.commit();
-      } else {
+      } else if (snap.docs.length > 0) {
         setMatches(snap.docs.map(d => ({ ...d.data(), id: d.id })));
       }
     });
