@@ -16,14 +16,26 @@ const DEFAULT_MATCHES = [
   { id:"m1", date:"07/04", day:"Mardi", time:"12h45", teamA:"🔵 Bachelor 2 (ISCOM)", teamB:"🔴 BRM 2 - Classe A (Studio M)", scoreA:null, scoreB:null, winnerId:null },
   { id:"m2", date:"07/04", day:"Mardi", time:"13h00", teamA:"🔴 BRM 1 (Studio M)", teamB:"🔴 Technicien Son 1 (Studio M)", scoreA:null, scoreB:null, winnerId:null },
   { id:"m3", date:"08/04", day:"Mercredi", time:"12h45", teamA:"🔴 BTS 1 (Studio M)", teamB:"🔴 Prépa Art (Studio M)", scoreA:null, scoreB:null, winnerId:null },
-  { id:"m4", date:"08/04", day:"Mercredi", time:"13h00", teamA:"🔵 BA. 3 FA (ISCOM)", teamB:"🔴 Design Graphique 3 (Studio M)", scoreA:null, scoreB:null, winnerId:null },
+  { id:"m4", date:"08/04", day:"Mercredi", time:"13h00", teamA:"🔵 BA. 3 Alternance (ISCOM)", teamB:"🔴 Design Graphique 3 (Studio M)", scoreA:null, scoreB:null, winnerId:null },
   { id:"m5", date:"10/04", day:"Vendredi", time:"12h45", teamA:"🔴 BTS 2 (Studio M)", teamB:"🔴 BRM 2 - Classe B (Studio M)", scoreA:null, scoreB:null, winnerId:null },
-  { id:"m6", date:"10/04", day:"Vendredi", time:"13h00", teamA:"🔵 MBA 2 FA - Strat (ISCOM)", teamB:"🔵 MBA 2 FA - Market (ISCOM)", scoreA:null, scoreB:null, winnerId:null },
-  { id:"m7", date:"13/04", day:"Lundi", time:"12h45", teamA:"🔵 MBA 1 FA - Créa (ISCOM)", teamB:"🔵 MBA 1 FA - Market (ISCOM)", scoreA:null, scoreB:null, winnerId:null },
-  { id:"m8", date:"13/04", day:"Lundi", time:"13h00", teamA:"🔵 MBA 1 FA - Event (ISCOM)", teamB:"🔵 MBA 1 FA - Strat (ISCOM)", scoreA:null, scoreB:null, winnerId:null },
+  { id:"m6", date:"10/04", day:"Vendredi", time:"13h00", teamA:"🔵 MBA 2 FA - spé Stratégie de marque (ISCOM)", teamB:"🔵 MBA 2 FA - spé Marketing Digital (ISCOM)", scoreA:null, scoreB:null, winnerId:null },
+  { id:"m7", date:"13/04", day:"Lundi", time:"12h45", teamA:"🔵 MBA 1 FA - spé Créa (ISCOM)", teamB:"🔵 MBA 1 FA - spé Marketing Digital (ISCOM)", scoreA:null, scoreB:null, winnerId:null },
+  { id:"m8", date:"13/04", day:"Lundi", time:"13h00", teamA:"🔵 MBA 1 FA - spé Événementiel (ISCOM)", teamB:"🔵 MBA 1 FA - spé Stratégie de marque (ISCOM)", scoreA:null, scoreB:null, winnerId:null },
   { id:"m9", date:"15/04", day:"Mercredi", time:"12h45", teamA:"🔴 Technicien Son 2 (Studio M)", teamB:"🟢 Staff Studio M", scoreA:null, scoreB:null, winnerId:null },
-  { id:"m10", date:"17/04", day:"Vendredi", time:"12h45", teamA:"🔵 MBA 2 FA - Event (ISCOM)", teamB:"🟢 Staff ISCOM", scoreA:null, scoreB:null, winnerId:null },
+  { id:"m10", date:"17/04", day:"Vendredi", time:"12h45", teamA:"🔵 MBA 2 FA - spé Événementiel (ISCOM)", teamB:"🟢 Staff ISCOM", scoreA:null, scoreB:null, winnerId:null },
 ];
+
+// Migration: rename teams in Firestore without touching dates/scores
+const TEAM_RENAMES = {
+  "🔵 BA. 3 FA (ISCOM)": "🔵 BA. 3 Alternance (ISCOM)",
+  "🔵 MBA 2 FA - Strat (ISCOM)": "🔵 MBA 2 FA - spé Stratégie de marque (ISCOM)",
+  "🔵 MBA 2 FA - Market (ISCOM)": "🔵 MBA 2 FA - spé Marketing Digital (ISCOM)",
+  "🔵 MBA 1 FA - Créa (ISCOM)": "🔵 MBA 1 FA - spé Créa (ISCOM)",
+  "🔵 MBA 1 FA - Market (ISCOM)": "🔵 MBA 1 FA - spé Marketing Digital (ISCOM)",
+  "🔵 MBA 1 FA - Event (ISCOM)": "🔵 MBA 1 FA - spé Événementiel (ISCOM)",
+  "🔵 MBA 1 FA - Strat (ISCOM)": "🔵 MBA 1 FA - spé Stratégie de marque (ISCOM)",
+  "🔵 MBA 2 FA - Event (ISCOM)": "🔵 MBA 2 FA - spé Événementiel (ISCOM)",
+};
 
 const ADMIN_HASH = "67cdc292407429c1fb5b6f3ce02ef19a3ce138bab1ce33fcf66bb326ef362412";
 function downloadICS(match) {
@@ -118,7 +130,27 @@ function App() {
         DEFAULT_MATCHES.forEach(m => batch.set(doc(db, "matches", m.id), m));
         batch.commit().then(() => console.log("[Firebase] Default matches seeded")).catch(e => console.error("[Firebase] Seed error:", e));
       } else if (snap.docs.length > 0) {
-        setMatches(snap.docs.map(d => ({ ...d.data(), id: d.id })));
+        const matchList = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+        setMatches(matchList);
+
+        // One-time migration: rename abbreviated team names (preserves dates/scores)
+        if (!localStorage.getItem("bf-migrated-names-v1")) {
+          localStorage.setItem("bf-migrated-names-v1", "true");
+          const batch = writeBatch(db);
+          let changed = false;
+          matchList.forEach(m => {
+            const newA = TEAM_RENAMES[m.teamA];
+            const newB = TEAM_RENAMES[m.teamB];
+            if (newA || newB) {
+              const update = { ...m };
+              if (newA) update.teamA = newA;
+              if (newB) update.teamB = newB;
+              batch.set(doc(db, "matches", m.id), update);
+              changed = true;
+            }
+          });
+          if (changed) batch.commit().then(() => console.log("[Firebase] Team names migrated")).catch(e => console.error("[Firebase] Migration error:", e));
+        }
       }
       setFirebaseOk(true);
     }, (err) => {
@@ -609,11 +641,11 @@ function App() {
               <RuleInterdit name="Pissettes" desc="Tir ailiers barre de 3 sans passe." />
             </RuleSection>
             <RuleSection icon="💀" title="9. Balles mortes / sorties"><RuleBullet>Morte entre barres de 5 → demis du dernier engagement.</RuleBullet><RuleBullet>Morte ailleurs → arrières du camp le plus proche.</RuleBullet><RuleBullet>Hors table → arrières de l'autre équipe. Rebond du but → but accordé.</RuleBullet></RuleSection>
-            <RuleSection icon="🎬" title="10. Lots">
+            <RuleSection icon="🎯" title="10. Lots">
               <div style={{ padding:"12px 14px", background:"rgba(237,114,24,0.1)", borderRadius:8, border:"1px solid rgba(237,114,24,0.2)", textAlign:"center" }}>
-                <div style={{ fontSize:24, marginBottom:6 }}>🎬🍿</div>
-                <div style={{ fontSize:14, fontWeight:700, color:"#ED7218", marginBottom:4 }}>Places de cinéma</div>
-                <div style={{ fontSize:12 }}>Une place par joueur de l'équipe gagnante !</div>
+                <div style={{ fontSize:24, marginBottom:6 }}>🎯🎮</div>
+                <div style={{ fontSize:14, fontWeight:700, color:"#ED7218", marginBottom:4 }}>4 places pour LEVEL3</div>
+                <div style={{ fontSize:12 }}>Le complexe de loisirs à Rennes — une place par joueur de l'équipe gagnante !</div>
               </div>
             </RuleSection>
             <div style={{ textAlign:"center", marginTop:16, padding:"14px 16px", background:"rgba(237,114,24,0.08)", borderRadius:10, border:"1px solid rgba(237,114,24,0.15)" }}>
