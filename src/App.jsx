@@ -151,6 +151,20 @@ function App() {
           });
           if (changed) batch.commit().then(() => console.log("[Firebase] Team names migrated")).catch(e => console.error("[Firebase] Migration error:", e));
         }
+
+        // One-time migration: move BRM2 matches to 14/04 Mardi
+        if (!localStorage.getItem("bf-migrated-brm2-dates")) {
+          localStorage.setItem("bf-migrated-brm2-dates", "true");
+          const brm2Batch = writeBatch(db);
+          let brm2Changed = false;
+          matchList.forEach(m => {
+            if ((m.teamA && m.teamA.includes("BRM 2")) || (m.teamB && m.teamB.includes("BRM 2"))) {
+              brm2Batch.update(doc(db, "matches", m.id), { date:"14/04", day:"Mardi" });
+              brm2Changed = true;
+            }
+          });
+          if (brm2Changed) brm2Batch.commit().then(() => console.log("[Firebase] BRM2 dates migrated to 14/04")).catch(e => console.error("[Firebase] BRM2 migration error:", e));
+        }
       }
       setFirebaseOk(true);
     }, (err) => {
