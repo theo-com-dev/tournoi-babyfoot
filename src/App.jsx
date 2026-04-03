@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { db } from "./firebase";
-import { collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch } from "firebase/firestore";
+import { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch } from "firebase/firestore";
 
 const CLASSES = {
   "ISCOM": ["Bachelor 2","BA. 3 Alternance","MBA 1 FA - spé Créa","MBA 1 FA - spé Marketing Digital","MBA 1 FA - spé Événementiel","MBA 1 FA - spé Stratégie de marque","MBA 2 FA - spé Stratégie de marque","MBA 2 FA - spé Marketing Digital","MBA 2 FA - spé Événementiel"],
@@ -142,10 +142,10 @@ function App() {
             const newA = TEAM_RENAMES[m.teamA];
             const newB = TEAM_RENAMES[m.teamB];
             if (newA || newB) {
-              const update = { ...m };
-              if (newA) update.teamA = newA;
-              if (newB) update.teamB = newB;
-              batch.set(doc(db, "matches", m.id), update);
+              const fields = {};
+              if (newA) fields.teamA = newA;
+              if (newB) fields.teamB = newB;
+              batch.update(doc(db, "matches", m.id), fields);
               changed = true;
             }
           });
@@ -181,15 +181,13 @@ function App() {
   const handleSaveScore = async (matchId) => {
     const a=parseInt(scoreInputA); const b=parseInt(scoreInputB);
     if (isNaN(a)||isNaN(b)) return;
-    const match = matches.find(m=>m.id===matchId);
-    await saveMatch({...match, scoreA:a, scoreB:b, winnerId:a>b?"A":b>a?"B":null});
+    await updateDoc(doc(db, "matches", matchId), { scoreA:a, scoreB:b, winnerId:a>b?"A":b>a?"B":null });
     setEditingScore(null); setScoreInputA(""); setScoreInputB("");
   };
 
   const handleSaveDate = async (matchId) => {
     if (!dateInput||!dayInput||!timeInput) return;
-    const match = matches.find(m=>m.id===matchId);
-    await saveMatch({...match, date:dateInput, day:dayInput, time:timeInput});
+    await updateDoc(doc(db, "matches", matchId), { date:dateInput, day:dayInput, time:timeInput });
     setEditingDate(null); setDateInput(""); setDayInput(""); setTimeInput("");
   };
 
